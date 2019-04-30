@@ -87,7 +87,7 @@ function Get-ScoopPackages {
   }
 
   $installed_packages = $res.stdout -split "`n" |
-  Select-String '(.*?) \(v:(.*?)\) \[(\w+)\]' |
+  Select-String '(.*?) \(v:(.*?)\) \[(.*?)\]' |
   ForEach-Object {
     New-Object PSObject -Property ([Ordered]@{
         "Package" = $_.Matches[0].Groups[1].Value
