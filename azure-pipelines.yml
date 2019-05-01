@@ -1,0 +1,24 @@
+pool:
+  vmImage: 'windows-2019'
+steps:
+  - task: PowerShell@2
+    displayName: Install required modules from PowerShell Gallery
+    inputs:
+      targetType: inline
+      script: |
+        Install-Module -Name PSScriptAnalyzer `
+          -Repository 'PSGallery' `
+          -Scope 'CurrentUser' `
+          -Verbose `
+          -Force
+  - task: PowerShell@2
+    displayName: Lint PowerShell scripts
+    inputs:
+      targetType: inline
+      script: |
+        Invoke-ScriptAnalyzer -Path '$(Build.SourcesDirectory)' `
+          -IncludeDefaultRules `
+          -Recurse `
+          -Severity Error `
+          -ReportSummary `
+          -EnableExit
