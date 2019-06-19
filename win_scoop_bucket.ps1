@@ -91,10 +91,10 @@ function Get-ScoopBuckets {
 function Install-ScoopBucket {
   param(
     [Parameter(Mandatory = $true)] [string]$scoop_path,
-    [Parameter(Mandatory = $true)] [String[]]$buckets
+    [Parameter(Mandatory = $true)] [String]$bucket
   )
   $arguments = [System.Collections.ArrayList]@("powershell.exe", $scoop_path, "bucket", "add")
-  $arguments.AddRange($buckets)
+  $arguments.Add($bucket)
 
   $command = Argv-ToString -arguments $arguments
   $res = Run-Command -Command $command
@@ -119,7 +119,9 @@ if ($state -in @("present")) {
   }
 
   if ($missing_buckets) {
-    Install-ScoopBucket -scoop_path $scoop_path -buckets $missing_buckets
+    foreach ($missing_bucket in $missing_buckets) {
+      Install-ScoopBucket -scoop_path $scoop_path -bucket $missing_bucket
+    }
   }
 }
 
