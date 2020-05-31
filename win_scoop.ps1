@@ -6,17 +6,21 @@
 
 $spec = @{
   options = @{
-    name = @{ type = "list"; elements = "str"; required = $true }
-    state = @{ type = "str"; default = "present"; choices = "present","absent" }
+    name  = @{ type = "list"; elements = "str"; required = $true }
+    state = @{ type = "str"; default = "present"; choices = "present", "absent" }
   }
 }
 
-$module = [Ansible.Basic.AnsibleModule]::Create($args,$spec)
+$module = [Ansible.Basic.AnsibleModule]::Create($args, $spec)
 
 $name = $module.Params.name
 $state = $module.Params.state
 
 function Install-Scoop {
+
+  # Scoop doesn't have refreshenv like Chocolatey
+  # Let's try to update PATH first
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
   $scoop_app = Get-Command -Name scoop.ps1 -Type ExternalScript -ErrorAction SilentlyContinue
   if ($null -eq $scoop_app) {
@@ -39,7 +43,7 @@ function Install-Scoop {
       $install_script = $client.DownloadString($script_url)
     }
     catch {
-      $module.FailJson("Failed to download Scoop script from '$script_url'; $($_.Exception.Message)",$_)
+      $module.FailJson("Failed to download Scoop script from '$script_url'; $($_.Exception.Message)", $_)
     }
 
     if (-not $module.CheckMode) {
@@ -54,6 +58,9 @@ function Install-Scoop {
     }
     $module.Result.changed = $true
 
+    # Refresh PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
     # locate the newly installed scoop.ps1
     $scoop_app = Get-Command -Name scoop.ps1 -Type ExternalScript -ErrorAction SilentlyContinue
   }
@@ -64,7 +71,7 @@ function Install-Scoop {
     $module.ExitJson()
   }
 
-  if (-not (Test-Path -Path $scoop_app.Path)) {
+  if ($null -eq $scoop_app -or -not (Test-Path -Path $scoop_app.Path)) {
     $module.FailJson("Failed to find scoop.ps1, make sure it is added to the PATH")
   }
 
@@ -76,7 +83,7 @@ function Get-ScoopPackages {
     [Parameter(Mandatory = $true)] [string]$scoop_path
   )
 
-  $command = Argv-ToString -arguments @("powershell.exe",$scoop_path,"export")
+  $command = Argv-ToString -arguments @("powershell.exe", $scoop_path, "export")
   $res = Run-Command -Command $command
   if ($res.rc -ne 0) {
     $module.Result.command = $command
@@ -92,7 +99,7 @@ function Get-ScoopPackages {
     New-Object PSObject -Property ([Ordered]@{
         "Package" = $_.Matches[0].Groups[1].Value
         "Version" = $_.Matches[0].Groups[2].Value
-        "Bucket" = $_.Matches[0].Groups[3].Value
+        "Bucket"  = $_.Matches[0].Groups[3].Value
       })
   }
 
@@ -103,7 +110,7 @@ function Install-ScoopPackage {
     [Parameter(Mandatory = $true)] [string]$scoop_path,
     [Parameter(Mandatory = $true)] [String[]]$packages
   )
-  $arguments = [System.Collections.ArrayList]@("powershell.exe",$scoop_path,"install")
+  $arguments = [System.Collections.ArrayList]@("powershell.exe", $scoop_path, "install")
   $arguments.AddRange($packages)
 
   $command = Argv-ToString -arguments $arguments

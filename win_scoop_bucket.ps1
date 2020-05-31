@@ -17,6 +17,9 @@ $name = $module.Params.name
 $state = $module.Params.state
 
 function Install-Scoop {
+  # Scoop doesn't have refreshenv like Chocolatey
+  # Let's try to update PATH first
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
   $scoop_app = Get-Command -Name scoop.ps1 -Type ExternalScript -ErrorAction SilentlyContinue
   if ($null -eq $scoop_app) {
@@ -54,6 +57,9 @@ function Install-Scoop {
     }
     $module.Result.changed = $true
 
+    # Refresh PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
     # locate the newly installed scoop.ps1
     $scoop_app = Get-Command -Name scoop.ps1 -Type ExternalScript -ErrorAction SilentlyContinue
   }
@@ -64,7 +70,7 @@ function Install-Scoop {
     $module.ExitJson()
   }
 
-  if (-not (Test-Path -Path $scoop_app.Path)) {
+  if ($null -eq $scoop_app -or -not (Test-Path -Path $scoop_app.Path)) {
     $module.FailJson("Failed to find scoop.ps1, make sure it is added to the PATH")
   }
 
